@@ -1,0 +1,425 @@
+/* ──────────────────────────────────────────────────────────────
+   Tokens.
+
+   Colours are the reference data-viz palette, used unchanged. Every
+   chart on this page plots a single series, so only categorical slot 1
+   (blue) is needed; the rest are chrome and ink roles.
+
+   Dark mode is a selected set of steps for the dark surface, not an
+   automatic inversion. It is declared twice on purpose: the media query
+   follows the OS, the [data-theme] scope follows the page toggle, and
+   the toggle must win either way.
+   ────────────────────────────────────────────────────────────── */
+:root {
+    color-scheme: light;
+
+    --page:            #f9f9f7;
+    --surface-1:       #fcfcfb;
+    --text-primary:    #0b0b0b;
+    --text-secondary:  #52514e;
+    --text-muted:      #898781;
+    --grid:            #e1e0d9;
+    --axis:            #c3c2b7;
+    --border:          rgba(11, 11, 11, 0.10);
+    --series-1:        #2a78d6;
+    --series-wash:     rgba(42, 120, 214, 0.10);
+    --good:            #0ca30c;
+    --critical:        #d03b3b;
+    --shadow:          0 1px 2px rgba(11, 11, 11, 0.04), 0 8px 24px rgba(11, 11, 11, 0.06);
+
+    --radius:          12px;
+    --radius-sm:       8px;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+        color-scheme: dark;
+        --page:           #0d0d0d;
+        --surface-1:      #1a1a19;
+        --text-primary:   #ffffff;
+        --text-secondary: #c3c2b7;
+        --text-muted:     #898781;
+        --grid:           #2c2c2a;
+        --axis:           #383835;
+        --border:         rgba(255, 255, 255, 0.10);
+        --series-1:       #3987e5;
+        --series-wash:    rgba(57, 135, 229, 0.14);
+        --shadow:         0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.5);
+    }
+}
+
+:root[data-theme="dark"] {
+    color-scheme: dark;
+    --page:           #0d0d0d;
+    --surface-1:      #1a1a19;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted:     #898781;
+    --grid:           #2c2c2a;
+    --axis:           #383835;
+    --border:         rgba(255, 255, 255, 0.10);
+    --series-1:       #3987e5;
+    --series-wash:    rgba(57, 135, 229, 0.14);
+    --shadow:         0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    background: var(--page);
+    color: var(--text-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+}
+
+.wrap {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 0 16px;
+}
+
+/* ── Top bar ─────────────────────────────────────────────────── */
+.topbar {
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-1);
+}
+
+.topbar-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding-top: 16px;
+    padding-bottom: 16px;
+}
+
+.brand { display: flex; align-items: center; gap: 12px; }
+
+.brand-mark {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background: var(--series-1);
+    flex: none;
+    position: relative;
+}
+.brand-mark::after {
+    content: "";
+    position: absolute;
+    inset: 9px 7px;
+    border: 2px solid var(--surface-1);
+    border-radius: 6px;
+    border-left-color: transparent;
+    border-right-color: transparent;
+}
+
+h1 { font-size: 17px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+.brand-sub { margin: 1px 0 0; font-size: 12.5px; color: var(--text-muted); }
+
+/* ── Cards ───────────────────────────────────────────────────── */
+main { padding-top: 24px; padding-bottom: 8px; }
+
+.card {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow);
+}
+
+.card h2 { font-size: 15px; font-weight: 600; margin: 0 0 16px; letter-spacing: -0.005em; }
+
+.card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+.card-head h2 { margin: 0; }
+
+.card-head code {
+    font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+    background: var(--series-wash);
+    color: var(--text-primary);
+    padding: 1px 6px;
+    border-radius: 5px;
+    font-size: 13px;
+}
+
+.section-note {
+    margin: -6px 0 16px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    max-width: 62ch;
+}
+
+/* ── Form ────────────────────────────────────────────────────── */
+.field { margin-bottom: 14px; }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 5px;
+    color: var(--text-secondary);
+}
+.opt { font-weight: 400; color: var(--text-muted); }
+
+input, select {
+    width: 100%;
+    padding: 9px 11px;
+    font: inherit;
+    font-size: 14px;
+    color: var(--text-primary);
+    background: var(--page);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    transition: border-color 0.12s, box-shadow 0.12s;
+}
+input::placeholder { color: var(--text-muted); }
+
+input:focus-visible, select:focus-visible {
+    outline: none;
+    border-color: var(--series-1);
+    box-shadow: 0 0 0 3px var(--series-wash);
+}
+
+.hint { margin: 5px 0 0; font-size: 12px; color: var(--text-muted); }
+
+/* ── Buttons ─────────────────────────────────────────────────── */
+.primary-btn {
+    background: var(--series-1);
+    color: #ffffff;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 10px 20px;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.12s;
+}
+.primary-btn:hover { opacity: 0.9; }
+.primary-btn:disabled { opacity: 0.5; cursor: default; }
+
+.ghost-btn {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 6px 12px;
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+}
+.ghost-btn:hover { background: var(--series-wash); color: var(--text-primary); }
+
+.link-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    margin-top: 12px;
+    font: inherit;
+    font-size: 13px;
+    color: var(--text-secondary);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+}
+.link-btn:hover { color: var(--text-primary); }
+
+:focus-visible { outline: 2px solid var(--series-1); outline-offset: 2px; }
+
+/* ── Result ──────────────────────────────────────────────────── */
+.result {
+    margin-top: 18px;
+    padding: 14px 16px;
+    background: var(--series-wash);
+    border-radius: var(--radius-sm);
+}
+.result-label { margin: 0 0 6px; font-size: 12.5px; color: var(--text-secondary); }
+.result-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+.result-link {
+    font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+    font-size: 15px;
+    color: var(--text-primary);
+    text-decoration: none;
+    border-bottom: 1px solid var(--axis);
+    word-break: break-all;
+}
+.result-link:hover { border-bottom-color: var(--series-1); }
+
+.result-dest {
+    margin: 8px 0 0;
+    font-size: 12.5px;
+    color: var(--text-muted);
+    word-break: break-all;
+}
+
+.form-error {
+    margin: 12px 0 0;
+    font-size: 13px;
+    color: var(--critical);
+}
+
+/* ── Links table ─────────────────────────────────────────────── */
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+
+th {
+    text-align: left;
+    font-weight: 500;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    padding: 0 10px 8px 0;
+    border-bottom: 1px solid var(--grid);
+}
+th:last-child, td:last-child { text-align: right; padding-right: 0; }
+
+td {
+    padding: 11px 10px 11px 0;
+    border-bottom: 1px solid var(--grid);
+    color: var(--text-secondary);
+    vertical-align: middle;
+}
+tr:last-child td { border-bottom: none; }
+
+.slug-cell {
+    font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+    color: var(--text-primary);
+    text-decoration: none;
+    font-size: 13px;
+}
+.slug-cell:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+.dest-cell {
+    max-width: 260px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-muted);
+    font-size: 12.5px;
+}
+
+.num { font-variant-numeric: tabular-nums; color: var(--text-primary); }
+
+.pill {
+    display: inline-block;
+    font-size: 11px;
+    padding: 1px 7px;
+    border-radius: 99px;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+}
+.pill.off { color: var(--critical); border-color: var(--critical); }
+
+.empty { color: var(--text-muted); font-size: 13.5px; margin: 0; }
+
+/* ── KPI tiles ───────────────────────────────────────────────── */
+.kpi-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.kpi {
+    padding: 14px 16px;
+    background: var(--page);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+}
+.kpi-label { font-size: 12px; color: var(--text-secondary); margin: 0 0 4px; }
+
+/* Proportional figures on purpose: tabular-nums makes a large standalone
+   number look loose. Tabular is reserved for columns that align. */
+.kpi-value { font-size: 26px; font-weight: 600; margin: 0; letter-spacing: -0.02em; }
+.kpi-note { font-size: 11.5px; color: var(--text-muted); margin: 3px 0 0; }
+
+/* ── Timeline (column chart) ─────────────────────────────────── */
+.chart-figure { margin: 0 0 24px; }
+.chart-figure figcaption { margin-bottom: 14px; }
+.chart-figure h3 { font-size: 13.5px; font-weight: 600; margin: 0; }
+.chart-sub { font-size: 12px; color: var(--text-muted); margin: 2px 0 0; }
+
+.timeline { width: 100%; }
+.timeline svg { display: block; width: 100%; height: auto; overflow: visible; }
+
+.grid-line { stroke: var(--grid); stroke-width: 1; }
+.axis-line  { stroke: var(--axis);  stroke-width: 1; }
+.tick-text  { fill: var(--text-muted); font-size: 10.5px; font-variant-numeric: tabular-nums; }
+.bar        { fill: var(--series-1); }
+.bar-hit    { fill: transparent; cursor: pointer; }
+.bar-label  { fill: var(--text-primary); font-size: 11px; font-weight: 600; text-anchor: middle; }
+
+/* ── Breakdowns (horizontal bars) ────────────────────────────── */
+.breakdown-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 24px;
+}
+
+.breakdown h3 { font-size: 13.5px; font-weight: 600; margin: 0 0 12px; }
+
+.brow { margin-bottom: 10px; }
+.brow:last-child { margin-bottom: 0; }
+
+.brow-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 4px;
+}
+.brow-key {
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.brow-val { font-size: 12.5px; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+
+/* Track is a lighter wash of the same hue, so the fill reads against it
+   without a border drawn around the mark. */
+.brow-track { height: 8px; background: var(--series-wash); border-radius: 99px; overflow: hidden; }
+.brow-fill  { height: 100%; background: var(--series-1); border-radius: 0 4px 4px 0; min-width: 2px; }
+
+/* ── Toast ───────────────────────────────────────────────────── */
+.toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--text-primary);
+    color: var(--surface-1);
+    padding: 9px 16px;
+    border-radius: 99px;
+    font-size: 13px;
+    box-shadow: var(--shadow);
+    z-index: 50;
+}
+
+/* ── Footer ──────────────────────────────────────────────────── */
+.footer { padding: 8px 16px 32px; font-size: 12.5px; color: var(--text-muted); }
+.footer a { color: var(--text-secondary); }
+
+/* ── Small screens ───────────────────────────────────────────── */
+@media (max-width: 640px) {
+    .field-row { grid-template-columns: 1fr; }
+    .dest-cell { max-width: 120px; }
+    .topbar-inner { align-items: flex-start; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+}

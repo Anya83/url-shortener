@@ -30,6 +30,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -243,6 +245,45 @@ class ShortLinkFlowIT {
         mockMvc.perform(get("/api/v1/links/" + link.getSlug() + "/analytics"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalClicks").value(1));
+    }
+
+    @Test
+    @DisplayName("the root forwards to the web UI's index page")
+    void rootForwardsToWebUi() throws Exception {
+        // Spring's welcome-page support serves "/" by forwarding to
+        // /index.html. MockMvc does not follow forwards, so the body is empty
+        // here by design — the forward target is what there is to assert.
+        mockMvc.perform(get("/"))
+                .andExpect(status().isOk())
+                .andExpect(forwardedUrl("index.html"));
+    }
+
+    @Test
+    @DisplayName("the web UI page itself is served with its content")
+    void servesWebUi() throws Exception {
+        mockMvc.perform(get("/index.html"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Shorten a link")));
+    }
+
+    @Test
+    @DisplayName("static assets are not swallowed by the slug route")
+    void staticAssetsAreNotTreatedAsSlugs() throws Exception {
+        // The redirect route is /{slug:[0-9A-Za-z]{1,32}}, which excludes the
+        // dot in an asset filename. If that pattern is ever widened, these
+        // would start 404ing as unknown slugs instead of serving the UI.
+        mockMvc.perform(get("/styles.css")).andExpect(status().isOk());
+        mockMvc.perform(get("/app.js")).andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("adding the UI did not break slug resolution")
+    void slugRouteStillResolvesAlongsideStaticFiles() throws Exception {
+        ShortLink link = linkService.create("https://example.com/coexist", null, null, "anonymous");
+
+        mockMvc.perform(get("/" + link.getSlug()))
+                .andExpect(status().isFound())
+                .andExpect(header().string("Location", "https://example.com/coexist"));
     }
 
     @Test

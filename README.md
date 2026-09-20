@@ -18,9 +18,16 @@ Then:
 
 | What | Where |
 |---|---|
+| **Web UI** | **http://localhost:8080/** |
 | API docs (Swagger UI) | http://localhost:8080/docs |
 | Health | http://localhost:8080/actuator/health |
 | Cache hit ratio | http://localhost:8080/api/v1/links/_cache-stats |
+
+The web UI shortens links, lists them, and shows per-link click analytics — a daily
+column chart plus device, browser, referrer and country breakdowns — alongside live
+Redis cache hit/miss counters. It's plain HTML, CSS and JavaScript served from the
+jar: no build step, no `node_modules`, and no CDN at runtime, so it works offline and
+`mvn package` remains the only build command.
 
 Create a link:
 
@@ -163,7 +170,16 @@ src/main/java/com/anya/shortener/
 ├── repository/  Spring Data Mongo repositories
 ├── service/     Caching, slug generation, click ingestion, analytics
 └── web/         Controllers, DTOs, error handling
+
+src/main/resources/static/
+├── index.html   Web UI
+├── styles.css   Design tokens, light + dark
+└── app.js       Fetch calls and the inline-SVG charts
 ```
+
+The static files can't collide with short links: the redirect route is
+`/{slug:[0-9A-Za-z]{1,32}}`, which excludes the `.` in every asset filename, and
+`docs`, `api` and `actuator` are reserved so they can't be claimed as aliases.
 
 ## License
 

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>URL Shortener</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="data:,">
+</head>
+<body>
+<header class="topbar">
+    <div class="wrap topbar-inner">
+        <div class="brand">
+            <span class="brand-mark" aria-hidden="true"></span>
+            <div>
+                <h1>URL Shortener</h1>
+                <p class="brand-sub">MongoDB storage · Redis cache · click analytics</p>
+            </div>
+        </div>
+        <button id="themeToggle" class="ghost-btn" type="button" aria-label="Switch colour theme">
+            <span data-theme-label>Dark</span>
+        </button>
+    </div>
+</header>
+
+<main class="wrap">
+
+    <!-- ── Create ─────────────────────────────────────────────── -->
+    <section class="card" aria-labelledby="create-h">
+        <h2 id="create-h">Shorten a link</h2>
+        <form id="createForm" novalidate>
+            <div class="field">
+                <label for="url">Destination URL</label>
+                <input id="url" name="url" type="url" required spellcheck="false"
+                       placeholder="https://www.youtube.com/watch?v=..." autocomplete="off">
+            </div>
+
+            <div class="field-row">
+                <div class="field">
+                    <label for="alias">Custom alias <span class="opt">optional</span></label>
+                    <input id="alias" name="alias" type="text" spellcheck="false"
+                           placeholder="my-link" autocomplete="off" pattern="[0-9A-Za-z]*">
+                    <p class="hint">Letters and digits only.</p>
+                </div>
+                <div class="field">
+                    <label for="ttl">Expires after <span class="opt">optional</span></label>
+                    <select id="ttl">
+                        <option value="">Never</option>
+                        <option value="300">5 minutes</option>
+                        <option value="3600">1 hour</option>
+                        <option value="86400">1 day</option>
+                        <option value="604800">7 days</option>
+                    </select>
+                    <p class="hint">Expiry is enforced by a MongoDB TTL index.</p>
+                </div>
+            </div>
+
+            <button type="submit" class="primary-btn" id="submitBtn">Shorten</button>
+            <p id="formError" class="form-error" role="alert" hidden></p>
+        </form>
+
+        <div id="result" class="result" hidden>
+            <p class="result-label">Your short link</p>
+            <div class="result-row">
+                <a id="resultLink" class="result-link" href="#" target="_blank" rel="noopener"></a>
+                <button type="button" class="ghost-btn" id="copyBtn">Copy</button>
+            </div>
+            <p class="result-dest" id="resultDest"></p>
+        </div>
+    </section>
+
+    <!-- ── Links ──────────────────────────────────────────────── -->
+    <section class="card" aria-labelledby="links-h">
+        <div class="card-head">
+            <h2 id="links-h">Your links</h2>
+            <button type="button" class="ghost-btn" id="refreshBtn">Refresh</button>
+        </div>
+        <div id="linksBody">
+            <p class="empty">Loading…</p>
+        </div>
+    </section>
+
+    <!-- ── Analytics ──────────────────────────────────────────── -->
+    <section class="card" id="analyticsCard" aria-labelledby="analytics-h" hidden>
+        <div class="card-head">
+            <h2 id="analytics-h">Analytics for <code id="analyticsSlug"></code></h2>
+            <button type="button" class="ghost-btn" id="closeAnalytics">Close</button>
+        </div>
+
+        <div class="kpi-row" id="kpiRow"></div>
+
+        <figure class="chart-figure">
+            <figcaption>
+                <h3>Clicks per day</h3>
+                <p class="chart-sub">Last 14 days</p>
+            </figcaption>
+            <div id="timeline" class="timeline"></div>
+            <button type="button" class="link-btn" id="toggleTable" aria-expanded="false">
+                Show data table
+            </button>
+            <div id="timelineTable" hidden></div>
+        </figure>
+
+        <div class="breakdown-grid" id="breakdowns"></div>
+    </section>
+
+    <!-- ── Cache ──────────────────────────────────────────────── -->
+    <section class="card" aria-labelledby="cache-h">
+        <div class="card-head">
+            <h2 id="cache-h">Redis cache</h2>
+            <button type="button" class="ghost-btn" id="refreshCache">Refresh</button>
+        </div>
+        <p class="section-note">
+            Redirects read through Redis. A miss falls back to MongoDB and is written back,
+            so repeat traffic — including traffic for links that do not exist — never reaches the database.
+        </p>
+        <div class="kpi-row" id="cacheRow"></div>
+    </section>
+
+</main>
+
+<footer class="wrap footer">
+    <p>
+        <a href="/docs">API documentation</a> ·
+        <a href="https://github.com/Anya83/url-shortener" target="_blank" rel="noopener">Source on GitHub</a>
+    </p>
+</footer>
+
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="app.js"></script>
+</body>
+</html>
