@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
+import java.math.BigInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -20,9 +21,9 @@ import java.util.concurrent.atomic.AtomicLong;
  *
  * <p><b>Enumerability.</b> A raw counter produces {@code 0000001}, {@code 0000002},
  * … letting anyone walk every link in the system. Each ID is therefore mapped
- * through {@code (id * MULTIPLIER) mod 62^7}. Because the multiplier is coprime
- * to 62^7, the mapping is a bijection — still collision-free, but consecutive
- * counter values land far apart.
+ * through {@code (id * MULTIPLIER + OFFSET) mod 62^7}. Because the multiplier is
+ * coprime to 62^7, the mapping is a bijection — still collision-free, but
+ * consecutive counter values land far apart.
  *
  * <p>This is obfuscation, not secrecy: the multiplier is in the source, so the
  * mapping is invertible by anyone who reads it. Links that must be unguessable
@@ -34,7 +35,16 @@ public class CounterSlugGenerator implements SlugGenerator {
     private static final String COUNTER_KEY = "shortener:slug:counter";
 
     /** Coprime to 62^7 = 2^7 * 31^7 (it is odd and not a multiple of 31). */
-    private static final long MULTIPLIER = 1_500_450_271L;
+    private static final BigInteger MULTIPLIER = BigInteger.valueOf(1_500_450_271L);
+
+    /**
+     * Additive shift, so that id 0 does not map to the all-zero slug.
+     *
+     * <p>Adding a constant preserves the bijection — it just relabels which slug
+     * each id gets — but it avoids handing the very first link ever created the
+     * conspicuous slug {@code 0000000}.
+     */
+    private static final BigInteger OFFSET = BigInteger.valueOf(1_234_567_890_123L);
 
     private final StringRedisTemplate redis;
     private final int slugLength;
@@ -55,9 +65,27 @@ public class CounterSlugGenerator implements SlugGenerator {
 
     @Override
     public String next() {
-        long id = nextId();
-        long scrambled = Math.floorMod(id * MULTIPLIER, space);
-        return Base62Codec.encode(scrambled, slugLength);
+        return Base62Codec.encode(scramble(nextId(), space), slugLength);
+    }
+
+    /**
+     * Maps a counter value onto a scattered slug index.
+     *
+     * <p>Computed in {@link BigInteger} rather than {@code long} arithmetic
+     * because the intermediate product does not fit: the largest id is 62^7 ≈
+     * 3.5e12 and the multiplier is ≈1.5e9, giving ≈5.3e21 against a
+     * {@code Long.MAX_VALUE} of ≈9.2e18. A wrapping {@code long} multiply would
+     * silently stop being a bijection — 2^64 is divisible by the 2^7 factor of
+     * 62^7 but not by 31^7 — and start producing collisions once ids exceeded
+     * ≈6.1e9. The arithmetic runs once per link created, never on the redirect
+     * path, so the cost is irrelevant.
+     */
+    static long scramble(long id, long space) {
+        return BigInteger.valueOf(id)
+                .multiply(MULTIPLIER)
+                .add(OFFSET)
+                .mod(BigInteger.valueOf(space))
+                .longValueExact();
     }
 
     private long nextId() {

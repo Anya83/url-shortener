@@ -106,6 +106,43 @@ class CounterSlugGeneratorTest {
     }
 
     @Test
+    @DisplayName("the first link ever created is not the all-zero slug")
+    void firstSlugIsNotAllZeros() {
+        stubRedisCounter(512);
+        CounterSlugGenerator generator = new CounterSlugGenerator(redis, props(512));
+
+        assertThat(generator.next()).isNotEqualTo("0000000");
+    }
+
+    @Test
+    @DisplayName("the mapping stays a bijection past the point a long multiply would overflow")
+    void scrambleSurvivesOverflowRange() {
+        long space = Base62Codec.capacity(7);
+
+        // id * 1_500_450_271 exceeds Long.MAX_VALUE beyond roughly 6.1e9, which
+        // is where a wrapping long multiply silently stopped being injective.
+        long overflowThreshold = Long.MAX_VALUE / 1_500_450_271L;
+        Set<Long> seen = new HashSet<>();
+        for (long id = overflowThreshold - 5_000; id < overflowThreshold + 5_000; id++) {
+            long value = CounterSlugGenerator.scramble(id, space);
+            assertThat(value).as("scramble(%d) out of range", id).isBetween(0L, space - 1);
+            assertThat(seen.add(value)).as("collision at id %d", id).isTrue();
+        }
+    }
+
+    @Test
+    @DisplayName("scramble stays in range at the very top of the address space")
+    void scrambleHandlesMaximumIds() {
+        long space = Base62Codec.capacity(7);
+
+        for (long id : new long[]{space - 1, space, space + 1, space * 2 - 1}) {
+            assertThat(CounterSlugGenerator.scramble(id, space))
+                    .as("scramble(%d)", id)
+                    .isBetween(0L, space - 1);
+        }
+    }
+
+    @Test
     @DisplayName("concurrent callers never receive the same slug")
     void isThreadSafe() throws Exception {
         stubRedisCounter(64);
