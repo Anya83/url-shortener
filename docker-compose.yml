@@ -1,0 +1,77 @@
+services:
+  mongo:
+    image: mongo:7.0
+    container_name: shortener-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: urlshortener
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      # The app must not start before Mongo accepts commands, or index
+      # creation at boot fails and the service comes up half-configured.
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  redis:
+    image: redis:7.4-alpine
+    container_name: shortener-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    # allkeys-lru matters: this cache holds derived data that can always be
+    # rebuilt from MongoDB, so evicting the coldest keys under pressure is
+    # correct. The default noeviction policy would instead start refusing
+    # writes once maxmemory is reached, breaking click buffering.
+    command: >
+      redis-server
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --appendonly yes
+      --appendfsync everysec
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: shortener-app
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      MONGODB_URI: mongodb://mongo:27017/urlshortener
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      APP_BASE_URL: http://localhost:8080
+      # The app sits behind no proxy in this compose file, so forwarded
+      # headers stay untrusted.
+      APP_TRUST_PROXY: "false"
+      APP_IP_SALT: ${APP_IP_SALT:-compose-dev-salt}
+      LOG_LEVEL: INFO
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/actuator/health/liveness"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+volumes:
+  mongo-data:
+  redis-data:

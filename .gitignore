@@ -1,0 +1,37 @@
+# Build output
+target/
+!.mvn/wrapper/maven-wrapper.jar
+build/
+out/
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.classpath
+.project
+nbproject/
+
+# OS
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+
+# Logs
+*.log
+logs/
+
+# Local environment overrides. Real credentials and the production IP salt
+# belong here, never in application.yml.
+.env
+.env.local
+src/main/resources/application-local.yml
+src/main/resources/application-secrets.yml
+
+# Container volumes if bind-mounted locally
+mongo-data/
+redis-data/

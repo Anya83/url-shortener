@@ -1,0 +1,112 @@
+spring:
+  application:
+    name: url-shortener
+
+  data:
+    mongodb:
+      # Overridden by MONGODB_URI in docker-compose and in any deployed
+      # environment. The default points at a local container.
+      uri: ${MONGODB_URI:mongodb://localhost:27017/urlshortener}
+      # Off by design. Indexes are declared explicitly in MongoIndexInitializer
+      # so the full set is reviewable and startup failures are visible.
+      auto-index-creation: false
+
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 2s
+      # A short connect timeout matters more than a generous one here: the
+      # service degrades to MongoDB when Redis is slow, so failing fast is
+      # better than holding the redirect thread.
+      connect-timeout: 1s
+      lettuce:
+        pool:
+          enabled: true
+          max-active: 16
+          max-idle: 8
+          min-idle: 2
+          max-wait: 1s
+
+  threads:
+    virtual:
+      enabled: false
+
+server:
+  port: ${SERVER_PORT:8080}
+  # Redirects are tiny; shutting down gracefully lets in-flight ones finish
+  # and gives the analytics executor time to drain.
+  shutdown: graceful
+  error:
+    include-stacktrace: never
+    include-message: never
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
+  health:
+    # Reported but not fatal: the service is designed to keep serving
+    # redirects from MongoDB when Redis is unavailable, so a Redis outage
+    # must not make the pod fail its readiness probe.
+    redis:
+      enabled: true
+
+app:
+  base-url: ${APP_BASE_URL:http://localhost:8080}
+  # Leave false unless a trusted reverse proxy overwrites X-Forwarded-For.
+  # When true, any client can forge its IP and bypass rate limiting.
+  trust-proxy-headers: ${APP_TRUST_PROXY:false}
+
+  slug:
+    length: 7
+    # counter = collision-free, sequential-but-scrambled
+    # random  = unguessable, retries on the rare collision
+    strategy: ${APP_SLUG_STRATEGY:counter}
+    counter-block-size: 512
+    reserved:
+      - api
+      - actuator
+      - health
+      - docs
+      - swagger-ui
+      - v3
+      - favicon.ico
+
+  cache:
+    enabled: true
+    link-ttl: 24h
+    # Short on purpose: a negative entry only needs to outlive a burst of
+    # requests for a slug that does not exist.
+    negative-ttl: 2m
+
+  analytics:
+    enabled: true
+    raw-event-retention: 90d
+    flush-interval: 30s
+    rollup-cron: "0 10 0 * * *"
+
+  rate-limit:
+    enabled: true
+    create-per-minute: 20
+    redirect-per-minute: 600
+
+  privacy:
+    # MUST be overridden in any real deployment. A known salt makes visitor
+    # hashes reversible by brute force over the IPv4 address space.
+    ip-salt: ${APP_IP_SALT:local-dev-salt-change-me}
+
+logging:
+  level:
+    com.anya.shortener: ${LOG_LEVEL:INFO}
+    org.springframework.data.mongodb.core.MongoTemplate: WARN
+
+springdoc:
+  swagger-ui:
+    path: /docs
