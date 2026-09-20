@@ -120,7 +120,7 @@ mvn verify
 
 They assert the things mocked tests can't: that the cache actually absorbs the second read, that negative caching spares MongoDB, and that buffered counters survive the round trip into a document.
 
-> **Known issue on Docker Engine 29.x.** Testcontainers 1.20.4 bundles docker-java 3.4.0, which fails to reach the engine on recent Docker Desktop builds — it lands on Docker Desktop's CLI stub pipe and gets `HTTP 400` back, reporting *"Could not find a valid Docker environment."* Setting `DOCKER_HOST` doesn't help, since the stub answers there too. `docker compose up` is unaffected; only Testcontainers is. Until the dependency is bumped, verify end to end against the Compose stack instead.
+> **Testcontainers 2.x is required on Docker Engine 29+.** The 1.20.x line bundles docker-java 3.4.0, which fails API version negotiation against Engine 29 — the daemon answers `HTTP 400` and Testcontainers reports the misleading *"Could not find a valid Docker environment."* Setting `DOCKER_HOST` does not help, because the endpoint was never the problem. Testcontainers 2.0.5 ships docker-java 3.7.1, which negotiates API 1.56 over the same named pipe and works. Note that 2.x renamed the modules: `org.testcontainers:mongodb` is now `org.testcontainers:testcontainers-mongodb`, and likewise for `testcontainers-junit-jupiter`.
 
 ---
 
